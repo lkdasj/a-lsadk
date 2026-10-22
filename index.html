@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#080d20">
   <meta name="description" content="Un mensaje sincero para Nacha.">
   <title>Para Nacha — Un mensaje sincero</title>
-  
+
   <style>
     /* Fondo principal */
     body {
@@ -690,16 +690,6 @@
       opacity: .72
     }
 
-    .reading-progress {
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 30;
-      width: 100%;
-      height: 3px;
-      background: transparent
-    }
-
     .reading-progress span {
       display: block;
       height: 100%;
@@ -952,43 +942,64 @@
     }
 
     /* Mantener el contenido delante de las estrellas */
-#contenidoMensaje,
-#portada,
-main,
-footer {
-  position: relative;
-  z-index: 1;
-}
+    #contenidoMensaje,
+    #portada,
+    main,
+    footer {
+      position: relative;
+      z-index: 1;
+    }
 
-/* Barra de progreso fija en la parte superior */
-.reading-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  z-index: 30;
-  background: transparent;
-  pointer-events: none;
-}
+    /* Navbar que permanece arriba al desplazarse */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
 
-/* Navbar que permanece arriba al desplazarse */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
+    /* Botón para volver arriba */
+    .back-top {
+      position: fixed;
+      z-index: 20;
+    }
 
-/* Botón para volver arriba */
-.back-top {
-  position: fixed;
-  z-index: 20;
+    .reading-progress {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      z-index: 99999;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    body.mensaje-abierto .reading-progress {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #progressBar {
+    display: block;
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #8be0f4, #c4b5fd, #f0abfc);
+    box-shadow: 0 0 14px rgba(196, 181, 253, 0.75);
+    transition: width 0.1s linear;
 }
   </style>
 </head>
 
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
+
+  <!-- Barra de progreso fuera del contenedor animado para que permanezca fija en la ventana -->
+  <div class="reading-progress" aria-hidden="true">
+    <span id="progressBar"></span>
+  </div>
 
   <!-- Portada visible al abrir la página -->
   <section id="portada" class="portada">
@@ -1019,10 +1030,6 @@ footer {
 
   <!-- Todo este contenido permanecerá oculto hasta pulsar el botón -->
   <div id="contenidoMensaje">
-
-    <div class="reading-progress" aria-hidden="true">
-      <span id="progressBar"></span>
-    </div>
 
     <header class="topbar">
       <nav class="nav" aria-label="Navegación principal">
@@ -1068,7 +1075,8 @@ footer {
         <div class="memory-grid">
           <article class="memory"><span class="icon" aria-hidden="true">☕</span>
             <h3>Salir a comer</h3>
-            <p>Compartir comida, conversar y pasar tiempo juntos sin necesitar un gran plan. (Lo cual no lo pense pero si
+            <p>Compartir comida, conversar y pasar tiempo juntos sin necesitar un gran plan. (Lo cual no lo pense pero
+              si
               se deberia valorar esas cosas y perdon por ignorarlas y no darme cuenta)</p>
           </article>
           <article class="memory"><span class="icon" aria-hidden="true">🗺️</span>
@@ -1097,7 +1105,8 @@ footer {
           gustaría volver a salir contigo, conversar, reírnos, acompañarnos y conocernos de una manera diferente.</p>
         <p>No quiero volver solamente para repetir lo que teníamos antes. Quiero saber si podemos construir algo que
           tenga
-          un significado para los dos. (y se que no existe pareja perfecta igual pienso yo, ya que todos cometemos errores ante
+          un significado para los dos. (y se que no existe pareja perfecta igual pienso yo, ya que todos cometemos
+          errores ante
           tentacion o cosas asi, pero si de los errores se aprenden, me gustaria luchar por ello)</p>
         <p>Entiendo que decirlo no borra lo ocurrido y que no basta con escribirlo bonito en una página. Si me dieras la
           oportunidad, me gustaría demostrarlo con mis acciones y respetar tus tiempos.</p>
@@ -1161,6 +1170,7 @@ footer {
 
         portada.classList.add("oculta");
         contenido.classList.add("visible");
+        document.body.classList.add("mensaje-abierto");
 
         window.scrollTo({
           top: 0,
@@ -1182,18 +1192,52 @@ footer {
     const progressBar = document.getElementById('progressBar');
     const backTop = document.getElementById('backTop');
     const navLinks = [...document.querySelectorAll('.nav a')];
-    const navSections = navLinks.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    const navSections = navLinks
+      .map(link => document.querySelector(link.getAttribute('href')))
+      .filter(Boolean);
+
     function updateScrollUI() {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      progressBar.style.width = `${max > 0 ? Math.min(100, window.scrollY / max * 100) : 0}%`;
-      backTop.classList.toggle('visible', window.scrollY > 420);
-      let current = 'inicio';
-      navSections.forEach(section => { if (window.scrollY >= section.offsetTop - 150) current = section.id; });
-      navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${current}`));
+      // Barra de progreso
+      if (progressBar) {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = max > 0
+          ? Math.min(100, (window.scrollY / max) * 100)
+          : 0;
+
+        progressBar.style.width = `${progress}%`;
+      }
+
+      // Botón para volver arriba
+      if (backTop) {
+        backTop.classList.toggle('visible', window.scrollY > 420);
+      }
+
+      // Enlace activo del navbar
+      let current = '';
+
+      navSections.forEach(section => {
+        if (window.scrollY >= section.offsetTop - 150) {
+          current = section.id;
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.toggle(
+          'active',
+          link.getAttribute('href') === `#${current}`
+        );
+      });
     }
+
     window.addEventListener('scroll', updateScrollUI, { passive: true });
     window.addEventListener('resize', updateScrollUI);
+    window.addEventListener('load', updateScrollUI);
+
     updateScrollUI();
+
+
+
     backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
     // ==========================================
@@ -1375,7 +1419,7 @@ footer {
       response.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }));
 
-    
+
   </script>
 </body>
 
